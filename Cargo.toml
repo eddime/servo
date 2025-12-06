@@ -239,6 +239,15 @@ opt-level = "s"
 inherits = "production"
 strip = true
 
+# Fast development build (fastest compile time)
+[profile.game-dev]
+inherits = "release"
+debug-assertions = false
+lto = false               # No LTO = much faster compile
+codegen-units = 16        # More parallel compilation
+opt-level = 1             # Minimal optimization
+incremental = true
+
 # Ultra-minimal build for game runtime (target: 50MB)
 [profile.game-runtime]
 inherits = "release"

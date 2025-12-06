@@ -13,7 +13,9 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
-default = ["clipboard", "vello_cpu"]
+# Game Runtime: No default features - everything is opt-in
+default = []
+# For full browser: default = ["clipboard", "vello_cpu"]
 background_hang_monitor = ["background_hang_monitor/sampler"]
 bluetooth = [
     "bluetooth_traits",
