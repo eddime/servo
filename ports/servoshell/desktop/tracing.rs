@@ -52,6 +52,7 @@ mod from_winit {
                 Self::WindowEvent { event, .. } => event.log_target(),
                 Self::DeviceEvent { .. } => target!("DeviceEvent"),
                 Self::UserEvent(AppEvent::Waker) => target!("UserEvent(Waker)"),
+                #[cfg(feature = "minibrowser")]
                 Self::UserEvent(AppEvent::Accessibility(..)) => target!("UserEvent(Accessibility)"),
                 Self::Suspended => target!("Suspended"),
                 Self::Resumed => target!("Resumed"),

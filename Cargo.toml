@@ -239,6 +239,17 @@ opt-level = "s"
 inherits = "production"
 strip = true
 
+# Ultra-minimal build for game runtime (target: 50MB)
+[profile.game-runtime]
+inherits = "release"
+debug-assertions = false
+lto = "fat"
+codegen-units = 1
+opt-level = "z"           # Optimize for size (more aggressive than "s")
+strip = "symbols"
+panic = "abort"           # Smaller panic handling, no unwinding
+overflow-checks = false   # Disable overflow checks for size
+
 [profile.profiling]
 inherits = "release"
 debug-assertions = false

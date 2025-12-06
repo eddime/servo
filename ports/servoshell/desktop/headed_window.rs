@@ -767,6 +767,20 @@ impl WindowPortsMethods for Window {
         self.rendering_context.clone()
     }
 
+    fn present_frame(&self) {
+        // Blit the Servo rendering to the window context
+        if let Some(render_to_parent) = self.rendering_context.render_to_parent_callback() {
+            let size = self.inner_size.get();
+            let rect = euclid::Rect::new(
+                euclid::Point2D::new(0, 0),
+                euclid::Size2D::new(size.width as i32, size.height as i32),
+            );
+            self.window_rendering_context.prepare_for_rendering();
+            render_to_parent(&self.window_rendering_context.glow_gl_api(), rect);
+        }
+        self.window_rendering_context.present();
+    }
+
     fn show_ime(&self, input_method: InputMethodControl) {
         let position = input_method.position();
         self.winit_window.set_ime_allowed(true);

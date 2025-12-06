@@ -8,6 +8,7 @@ mod accelerated_gl_media;
 pub(crate) mod app;
 mod app_state;
 pub(crate) mod cli;
+#[cfg(feature = "minibrowser")]
 mod dialog;
 pub(crate) mod events_loop;
 mod gamepad;
@@ -15,6 +16,7 @@ pub mod geometry;
 mod headed_window;
 mod headless_window;
 mod keyutils;
+#[cfg(feature = "minibrowser")]
 mod minibrowser;
 mod protocols;
 mod tracing;

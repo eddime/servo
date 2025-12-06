@@ -20,9 +20,11 @@ pub type EventLoopProxy = winit::event_loop::EventLoopProxy<AppEvent>;
 pub enum AppEvent {
     /// Another process or thread has kicked the OS event loop with EventLoopWaker.
     Waker,
+    #[cfg(feature = "minibrowser")]
     Accessibility(egui_winit::accesskit_winit::Event),
 }
 
+#[cfg(feature = "minibrowser")]
 impl From<egui_winit::accesskit_winit::Event> for AppEvent {
     fn from(event: egui_winit::accesskit_winit::Event) -> AppEvent {
         AppEvent::Accessibility(event)

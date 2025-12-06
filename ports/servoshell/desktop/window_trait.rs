@@ -53,6 +53,8 @@ pub trait WindowPortsMethods {
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);
     /// This returns [`RenderingContext`] matching the viewport.
     fn rendering_context(&self) -> Rc<dyn RenderingContext>;
+    /// Present the current frame directly (used when minibrowser is disabled)
+    fn present_frame(&self) {}
     fn show_ime(&self, _input_method: InputMethodControl) {}
     fn hide_ime(&self) {}
     fn theme(&self) -> servo::Theme {

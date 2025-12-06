@@ -51,6 +51,8 @@ pub(crate) struct ServoShellPreferences {
     pub clean_shutdown: bool,
     /// Enable native window's titlebar and decorations.
     pub no_native_titlebar: bool,
+    /// Disable the minibrowser UI (toolbar, tabs, URL bar).
+    pub no_minibrowser: bool,
     /// URL string of the homepage.
     pub homepage: String,
     /// URL string of the search engine page with '%s' standing in for the search term.
@@ -102,6 +104,7 @@ impl Default for ServoShellPreferences {
             homepage: "https://servo.org".into(),
             initial_window_size: Size2D::new(1024, 740),
             no_native_titlebar: true,
+            no_minibrowser: false,
             screen_size_override: None,
             simulate_touch_events: false,
             searchpage: "https://duckduckgo.com/html/?q=%s".into(),
@@ -463,6 +466,10 @@ struct CmdArgs {
     #[bpaf(short('b'), long)]
     no_native_titlebar: bool,
 
+    /// Disable the minibrowser UI (toolbar, tabs, URL bar) for kiosk/game mode.
+    #[bpaf(long)]
+    no_minibrowser: bool,
+
     ///
     ///  Enable to turn off incremental layout.
     #[bpaf(short('i'), long, flag(false, true))]
@@ -573,6 +580,11 @@ fn update_preferences_from_command_line_arguemnts(
         preferences.devtools_server_port = port as i64;
     }
 
+    // In game mode (--no-minibrowser), enable WebGPU by default
+    if cmd_args.no_minibrowser {
+        preferences.dom_webgpu_enabled = true;
+    }
+
     if cmd_args.enable_experimental_web_platform_features {
         for pref in EXPERIMENTAL_PREFS {
             preferences.set_value(pref, PrefValue::Bool(true));
@@ -673,6 +685,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let servoshell_preferences = ServoShellPreferences {
         url: Some(cmd_args.url),
         no_native_titlebar: cmd_args.no_native_titlebar,
+        no_minibrowser: cmd_args.no_minibrowser,
         device_pixel_ratio_override: cmd_args.device_pixel_ratio,
         clean_shutdown: cmd_args.clean_shutdown,
         headless: cmd_args.headless,

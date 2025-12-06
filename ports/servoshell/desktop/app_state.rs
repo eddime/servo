@@ -25,7 +25,10 @@ use servo::{
 use url::Url;
 
 use super::app::PumpResult;
+#[cfg(feature = "minibrowser")]
 use super::dialog::Dialog;
+#[cfg(not(feature = "minibrowser"))]
+pub struct Dialog; // Dummy type when minibrowser is disabled
 use super::gamepad::GamepadSupport;
 use super::window_trait::WindowPortsMethods;
 use crate::prefs::ServoShellPreferences;
@@ -365,6 +368,7 @@ impl RunningAppState {
             .is_some_and(|dialogs| !dialogs.is_empty())
     }
 
+    #[cfg(feature = "minibrowser")]
     pub(crate) fn get_current_active_dialog_webdriver_type(
         &self,
         webview_id: WebViewId,
@@ -377,7 +381,16 @@ impl RunningAppState {
             .filter_map(|dialog| dialog.webdriver_dialog_type())
             .nth(0)
     }
+    
+    #[cfg(not(feature = "minibrowser"))]
+    pub(crate) fn get_current_active_dialog_webdriver_type(
+        &self,
+        _webview_id: WebViewId,
+    ) -> Option<WebDriverUserPrompt> {
+        None
+    }
 
+    #[cfg(feature = "minibrowser")]
     pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
         if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
             dialogs.drain(..).for_each(|dialog| {
@@ -385,7 +398,11 @@ impl RunningAppState {
             });
         }
     }
+    
+    #[cfg(not(feature = "minibrowser"))]
+    pub(crate) fn accept_active_dialogs(&self, _webview_id: WebViewId) {}
 
+    #[cfg(feature = "minibrowser")]
     pub(crate) fn dismiss_active_dialogs(&self, webview_id: WebViewId) {
         if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
             dialogs.drain(..).for_each(|dialog| {
@@ -393,7 +410,11 @@ impl RunningAppState {
             });
         }
     }
+    
+    #[cfg(not(feature = "minibrowser"))]
+    pub(crate) fn dismiss_active_dialogs(&self, _webview_id: WebViewId) {}
 
+    #[cfg(feature = "minibrowser")]
     pub(crate) fn alert_text_of_newest_dialog(&self, webview_id: WebViewId) -> Option<String> {
         self.inner()
             .dialogs
@@ -401,7 +422,13 @@ impl RunningAppState {
             .and_then(|dialogs| dialogs.last())
             .and_then(|dialog| dialog.message())
     }
+    
+    #[cfg(not(feature = "minibrowser"))]
+    pub(crate) fn alert_text_of_newest_dialog(&self, _webview_id: WebViewId) -> Option<String> {
+        None
+    }
 
+    #[cfg(feature = "minibrowser")]
     pub(crate) fn set_alert_text_of_newest_dialog(&self, webview_id: WebViewId, text: String) {
         if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
             if let Some(dialog) = dialogs.last_mut() {
@@ -409,6 +436,9 @@ impl RunningAppState {
             }
         }
     }
+    
+    #[cfg(not(feature = "minibrowser"))]
+    pub(crate) fn set_alert_text_of_newest_dialog(&self, _webview_id: WebViewId, _text: String) {}
 
     fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
         self.interrupt_webdriver_script_evaluation();
@@ -425,26 +455,40 @@ impl RunningAppState {
             let _ = sender.send(WebDriverLoadStatus::Blocked);
         };
 
-        if self.servoshell_preferences().headless &&
-            self.servoshell_preferences().webdriver_port.is_none()
+        // In game runtime mode (no minibrowser) or headless, return default values
+        #[cfg(not(feature = "minibrowser"))]
         {
-            // TODO: Avoid copying this from the default trait impl?
-            // Return the DOM-specified default value for when we **cannot show simple dialogs**.
             let _ = match dialog {
-                SimpleDialog::Alert {
-                    response_sender, ..
-                } => response_sender.send(Default::default()),
-                SimpleDialog::Confirm {
-                    response_sender, ..
-                } => response_sender.send(Default::default()),
-                SimpleDialog::Prompt {
-                    response_sender, ..
-                } => response_sender.send(Default::default()),
+                SimpleDialog::Alert { response_sender, .. } => response_sender.send(Default::default()),
+                SimpleDialog::Confirm { response_sender, .. } => response_sender.send(Default::default()),
+                SimpleDialog::Prompt { response_sender, .. } => response_sender.send(Default::default()),
             };
             return;
         }
-        let dialog = Dialog::new_simple_dialog(dialog);
-        self.add_dialog(webview, dialog);
+        
+        #[cfg(feature = "minibrowser")]
+        {
+            if self.servoshell_preferences().headless &&
+                self.servoshell_preferences().webdriver_port.is_none()
+            {
+                // TODO: Avoid copying this from the default trait impl?
+                // Return the DOM-specified default value for when we **cannot show simple dialogs**.
+                let _ = match dialog {
+                    SimpleDialog::Alert {
+                        response_sender, ..
+                    } => response_sender.send(Default::default()),
+                    SimpleDialog::Confirm {
+                        response_sender, ..
+                    } => response_sender.send(Default::default()),
+                    SimpleDialog::Prompt {
+                        response_sender, ..
+                    } => response_sender.send(Default::default()),
+                };
+                return;
+            }
+            let dialog = Dialog::new_simple_dialog(dialog);
+            self.add_dialog(webview, dialog);
+        }
     }
 
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
@@ -544,16 +588,25 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
-        if self.servoshell_preferences().headless &&
-            self.servoshell_preferences().webdriver_port.is_none()
+        #[cfg(not(feature = "minibrowser"))]
         {
+            let _ = (webview, authentication_request); // Suppress unused warnings
             return;
         }
+        
+        #[cfg(feature = "minibrowser")]
+        {
+            if self.servoshell_preferences().headless &&
+                self.servoshell_preferences().webdriver_port.is_none()
+            {
+                return;
+            }
 
-        self.add_dialog(
-            webview,
-            Dialog::new_authentication_dialog(authentication_request),
-        );
+            self.add_dialog(
+                webview,
+                Dialog::new_authentication_dialog(authentication_request),
+            );
+        }
     }
 
     fn request_open_auxiliary_webview(
@@ -642,6 +695,14 @@ impl WebViewDelegate for RunningAppState {
         devices: Vec<String>,
         response_sender: GenericSender<Option<String>>,
     ) {
+        #[cfg(not(feature = "minibrowser"))]
+        {
+            let _ = (webview, devices);
+            let _ = response_sender.send(None); // No selection in game mode
+            return;
+        }
+        
+        #[cfg(feature = "minibrowser")]
         self.add_dialog(
             webview,
             Dialog::new_device_selection_dialog(devices, response_sender),
@@ -649,15 +710,25 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
-        if self.servoshell_preferences().headless &&
-            self.servoshell_preferences().webdriver_port.is_none()
+        #[cfg(not(feature = "minibrowser"))]
         {
-            permission_request.deny();
+            let _ = webview;
+            permission_request.deny(); // Auto-deny in game mode
             return;
         }
+        
+        #[cfg(feature = "minibrowser")]
+        {
+            if self.servoshell_preferences().headless &&
+                self.servoshell_preferences().webdriver_port.is_none()
+            {
+                permission_request.deny();
+                return;
+            }
 
-        let permission_dialog = Dialog::new_permission_request_dialog(permission_request);
-        self.add_dialog(webview, permission_dialog);
+            let permission_dialog = Dialog::new_permission_request_dialog(permission_request);
+            self.add_dialog(webview, permission_dialog);
+        }
     }
 
     fn notify_new_frame_ready(&self, _webview: servo::WebView) {
@@ -695,43 +766,58 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
-        if self.servoshell_preferences().headless &&
-            self.servoshell_preferences().webdriver_port.is_none()
+        #[cfg(not(feature = "minibrowser"))]
         {
-            return;
-        }
-
-        let control_id = embedder_control.id();
-        match embedder_control {
-            EmbedderControl::SelectElement(prompt) => {
-                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
-                // But if the toolbar height changes while the dialog is open then the position won't be updated
-                let offset = self.inner().window.toolbar_height();
-                self.add_dialog(webview, Dialog::new_select_element_dialog(prompt, offset));
-            },
-            EmbedderControl::ColorPicker(color_picker) => {
-                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
-                // But if the toolbar height changes while the dialog is open then the position won't be updated
-                let offset = self.inner().window.toolbar_height();
-                self.add_dialog(
-                    webview,
-                    Dialog::new_color_picker_dialog(color_picker, offset),
-                );
-            },
-            EmbedderControl::InputMethod(input_method_control) => {
+            // In game runtime mode, only handle InputMethod (keyboard)
+            let control_id = embedder_control.id();
+            if let EmbedderControl::InputMethod(input_method_control) = embedder_control {
                 self.inner_mut().visible_input_methods.push(control_id);
                 self.inner().window.show_ime(input_method_control);
-            },
-            EmbedderControl::FilePicker(file_picker) => {
-                self.add_dialog(webview, Dialog::new_file_dialog(file_picker));
-            },
-            EmbedderControl::SimpleDialog(simple_dialog) => {
-                self.show_simple_dialog(webview, simple_dialog);
-            },
-            EmbedderControl::ContextMenu(prompt) => {
-                let offset = self.inner().window.toolbar_height();
-                self.add_dialog(webview, Dialog::new_context_menu(prompt, offset));
-            },
+            }
+            let _ = webview;
+            return;
+        }
+        
+        #[cfg(feature = "minibrowser")]
+        {
+            if self.servoshell_preferences().headless &&
+                self.servoshell_preferences().webdriver_port.is_none()
+            {
+                return;
+            }
+
+            let control_id = embedder_control.id();
+            match embedder_control {
+                EmbedderControl::SelectElement(prompt) => {
+                    // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
+                    // But if the toolbar height changes while the dialog is open then the position won't be updated
+                    let offset = self.inner().window.toolbar_height();
+                    self.add_dialog(webview, Dialog::new_select_element_dialog(prompt, offset));
+                },
+                EmbedderControl::ColorPicker(color_picker) => {
+                    // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
+                    // But if the toolbar height changes while the dialog is open then the position won't be updated
+                    let offset = self.inner().window.toolbar_height();
+                    self.add_dialog(
+                        webview,
+                        Dialog::new_color_picker_dialog(color_picker, offset),
+                    );
+                },
+                EmbedderControl::InputMethod(input_method_control) => {
+                    self.inner_mut().visible_input_methods.push(control_id);
+                    self.inner().window.show_ime(input_method_control);
+                },
+                EmbedderControl::FilePicker(file_picker) => {
+                    self.add_dialog(webview, Dialog::new_file_dialog(file_picker));
+                },
+                EmbedderControl::SimpleDialog(simple_dialog) => {
+                    self.show_simple_dialog(webview, simple_dialog);
+                },
+                EmbedderControl::ContextMenu(prompt) => {
+                    let offset = self.inner().window.toolbar_height();
+                    self.add_dialog(webview, Dialog::new_context_menu(prompt, offset));
+                },
+            }
         }
     }
 
@@ -748,9 +834,13 @@ impl WebViewDelegate for RunningAppState {
             }
         }
 
+        #[cfg(feature = "minibrowser")]
         if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview.id()) {
             dialogs.retain(|dialog| dialog.embedder_control_id() != Some(control_id));
         }
+        
+        #[cfg(not(feature = "minibrowser"))]
+        let _ = webview;
     }
 
     fn notify_favicon_changed(&self, webview: WebView) {

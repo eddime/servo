@@ -130,13 +130,15 @@ webxr = { path = "../webxr", optional = true }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 arboard = { workspace = true, optional = true }
-webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless"] }
+# Made optional for game runtime (WebXR = VR/AR headsets, not needed for 3D games)
+webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless"], optional = true }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
+# Made optional for game runtime (WebXR = VR/AR headsets, not needed for 3D games)
+webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless", "openxr-api"], optional = true }
 
 [dev-dependencies]
 http = { workspace = true }
