@@ -580,9 +580,10 @@ fn update_preferences_from_command_line_arguemnts(
         preferences.devtools_server_port = port as i64;
     }
 
-    // In game mode (--no-minibrowser), enable WebGPU by default
+    // In game mode (--no-minibrowser), enable GPU features by default
     if cmd_args.no_minibrowser {
         preferences.dom_webgpu_enabled = true;
+        preferences.dom_webgl2_enabled = true;  // WebGL2 for better game performance
     }
 
     if cmd_args.enable_experimental_web_platform_features {
