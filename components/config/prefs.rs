@@ -329,8 +329,8 @@ impl Preferences {
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
-            dom_webgl2_enabled: false,
-            dom_webgpu_enabled: false,
+            dom_webgl2_enabled: true,  // WebGL2 enabled by default for game runtime
+            dom_webgpu_enabled: true,   // WebGPU enabled by default for game runtime
             dom_webgpu_wgpu_backend: String::new(),
             dom_webrtc_enabled: false,
             dom_webrtc_transceiver_enabled: false,
