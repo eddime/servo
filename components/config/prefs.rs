@@ -455,6 +455,8 @@ pub enum UserAgentPlatform {
     Android,
     OpenHarmony,
     Ios,
+    /// Game Runtime - pretends to be Chrome for maximum compatibility
+    GameRuntime,
 }
 
 impl UserAgentPlatform {
@@ -507,6 +509,16 @@ impl UserAgentPlatform {
             UserAgentPlatform::Ios => format!(
                 "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
             ),
+            // Game Runtime: Pretend to be Chrome for maximum game compatibility
+            UserAgentPlatform::GameRuntime => {
+                if cfg!(target_os = "macos") {
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36".to_string()
+                } else if cfg!(target_os = "windows") {
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36".to_string()
+                } else {
+                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36".to_string()
+                }
+            },
         }
     }
 }

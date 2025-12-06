@@ -17,7 +17,7 @@ use euclid::Size2D;
 use log::warn;
 use serde_json::Value;
 use servo::config::opts::{DebugOptions, Opts, OutputOptions};
-use servo::config::prefs::{PrefValue, Preferences};
+use servo::config::prefs::{PrefValue, Preferences, UserAgentPlatform};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use url::Url;
@@ -580,10 +580,12 @@ fn update_preferences_from_command_line_arguemnts(
         preferences.devtools_server_port = port as i64;
     }
 
-    // In game mode (--no-minibrowser), enable GPU features by default
+    // In game mode (--no-minibrowser), enable GPU features and use Chrome user-agent
     if cmd_args.no_minibrowser {
         preferences.dom_webgpu_enabled = true;
         preferences.dom_webgl2_enabled = true;  // WebGL2 for better game performance
+        // Use Chrome user-agent for maximum game compatibility
+        preferences.user_agent = UserAgentPlatform::GameRuntime.to_user_agent_string();
     }
 
     if cmd_args.enable_experimental_web_platform_features {
